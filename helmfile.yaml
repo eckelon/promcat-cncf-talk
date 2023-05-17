@@ -1,0 +1,35 @@
+repositories:
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+
+releases:  
+  - name: prometheus
+    namespace: prometheus
+    chart: prometheus-community/kube-prometheus-stack
+    atomic: true
+    values:
+    - prometheus:
+        prometheusSpec:
+          additionalScrapeConfigs:
+            - job_name: 'k8s-pods'
+              tls_config:
+                insecure_skip_verify: true
+              kubernetes_sd_configs:
+              - role: pod
+              relabel_configs:
+              - action: keep
+                source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                regex: true
+              - action: replace
+                source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+                target_label: __scheme__
+                regex: (https?)
+              - action: replace
+                source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                target_label: __metrics_path__
+                regex: (.+)
+              - action: replace
+                source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                regex: ([^:]+)(?::\d+)?;(\d+)
+                replacement: $1:$2
+                target_label: __address__
